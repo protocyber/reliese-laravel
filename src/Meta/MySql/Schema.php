@@ -53,7 +53,7 @@ class Schema implements \Reliese\Meta\Schema
      */
     public function manager()
     {
-        return $this->connection->getDoctrineSchemaManager();
+        return $this->schema;
     }
 
     /**
@@ -270,7 +270,11 @@ class Schema implements \Reliese\Meta\Schema
      */
     public static function schemas(Connection $connection)
     {
-        $schemas = $connection->getDoctrineSchemaManager()->listDatabases();
+        $databases = $connection->select('SHOW DATABASES');
+        $schemas = [];
+        foreach($databases as $database) {
+            $schemas[] = $database->Database;
+        }
 
         return array_diff($schemas, [
             'information_schema',

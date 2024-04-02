@@ -37,7 +37,7 @@ class Schema implements \Reliese\Meta\Schema
      /**
      * @var mixed|null
      */
-    protected $schema_database = null;
+    protected $search_path = null;
 
     /**
      * Mapper constructor.
@@ -47,9 +47,9 @@ class Schema implements \Reliese\Meta\Schema
      */
     public function __construct($schema, $connection)
     {
-        $this->schema_database = Config::get("database.connections.pgsql.search_path");
-        if (!$this->schema_database){
-            $this->schema_database = 'public';
+        $this->search_path = Config::get("database.connections.pgsql.search_path");
+        if (!$this->search_path){
+            $this->search_path = 'public';
         }
         $this->schema = $schema;
         $this->connection = $connection;
@@ -63,7 +63,7 @@ class Schema implements \Reliese\Meta\Schema
      */
     public function manager()
     {
-        return $this->connection->getDoctrineSchemaManager();
+        return $this->schema;
     }
 
     /**
@@ -92,7 +92,7 @@ class Schema implements \Reliese\Meta\Schema
     protected function fetchTables()
     {
         $rows = $this->arraify($this->connection->select(
-            "SELECT * FROM pg_tables where schemaname='$this->schema_database'"
+            "SELECT * FROM pg_tables where schemaname='$this->search_path'"
         ));
         $names = array_column($rows, 'tablename');
 
@@ -106,7 +106,7 @@ class Schema implements \Reliese\Meta\Schema
     {
         $rows = $this->arraify($this->connection->select(
             'SELECT * FROM information_schema.columns '.
-            "WHERE table_schema='$this->schema_database'".
+            "WHERE table_schema='$this->search_path'".
             'AND table_name='.$this->wrap($blueprint->table())
         ));
         foreach ($rows as $column) {
@@ -283,7 +283,11 @@ class Schema implements \Reliese\Meta\Schema
      */
     public static function schemas(Connection $connection)
     {
-        $schemas = $connection->getDoctrineSchemaManager()->listDatabases();
+        $databases = $connection->select("SELECT datname FROM pg_database WHERE datistemplate = false;");
+        $schemas = [];
+        foreach($databases as $database) {
+            $schemas[] = $database->datname;
+        }
 
         return array_diff($schemas, [
             'postgres',

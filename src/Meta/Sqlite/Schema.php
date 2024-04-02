@@ -53,7 +53,7 @@ class Schema implements \Reliese\Meta\Schema
      */
     public function manager()
     {
-        return $this->connection->getDoctrineSchemaManager();
+        return $this->schema;
     }
 
     /**
